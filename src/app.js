@@ -1,49 +1,26 @@
 const fs = require('fs');
 
+const send = function (res, statusCode, content) {
+	res.statusCode = statusCode;
+	res.write(content);
+	res.end();
+};
+
+const getPath = function (url) {
+	if (url == "/") return "./src/homePage.html";
+	return "./src" + url;
+}
+
 const app = (req, res) => {
-	if (req.url == "/main.js") {
-		fs.readFile('./src/main.js', "utf8", (err, content) => {
-			res.statusCode = 200;
-			res.write(content);
-			res.end();
+	let path = getPath(req.url);
+	fs.readFile(path, (err, content) => {
+		if (err) {
+			send(res, 404, "bad request");
+		} else {
+			send(res, 200, content);
 			return;
-		})
-	}
-	if (req.url == "/main.css") {
-		fs.readFile('./src/main.css', 'utf8', (err, content) => {
-			res.statusCode = 200;
-			res.write(content);
-			res.end();
-			return;
-		})
-	}
-	if (req.url == "/fc-sapanaKale/src/images/freshorigins.jpg") {
-		fs.readFile('./src/images/freshorigins.jpg', (err, content) => {
-			res.statusCode = 200;
-			res.write(content);
-			res.end();
-			return;
-		})
-	}
-	if (req.url == "/fc-sapanaKale/src/images/animated-flower-image-0021.gif") {
-		fs.readFile('./src/images/animated-flower-image-0021.gif', (err, content) => {
-			res.statusCode = 200;
-			res.write(content);
-			res.end();
-			return;
-		})
-	}
-	if (req.url == "/") {
-		fs.readFile('./src/homePage.html', "utf8", (err, content) => {
-			res.statusCode = 200;
-			res.write(content);
-			res.end();
-			return;
-		})
-	}
-	else {
-		res.statusCode = 404;
-	}
+		}
+	})
 };
 
 module.exports = app;
