@@ -1,0 +1,17 @@
+.margins{
+	margin-right: 1cm;
+	margin-left: 1cm;
+}
+
+.mainHeading{
+	color:orange;
+	text-align: right;
+	border-bottom: 1px solid black; 
+	padding-bottom: 0.5cm; 
+	font-size: 50px;
+}
+
+.mainDiv{
+	display: flex; 
+	justify-content: space-evenly;
+}
