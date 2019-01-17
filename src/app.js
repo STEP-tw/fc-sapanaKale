@@ -7,8 +7,8 @@ const send = function (res, statusCode, content) {
 };
 
 const getPath = function (url) {
-	if (url == "/") return "./src/homePage.html";
-	return "./src" + url;
+	if (url == "/") return "./public/homePage.html";
+	return "./public" + url;
 }
 
 const app = (req, res) => {
