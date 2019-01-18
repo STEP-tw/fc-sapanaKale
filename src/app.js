@@ -10,6 +10,23 @@ const logRequest = (req, res, next) => {
 	next();
 };
 
+const readBody = (req, res, next) => {
+	let content = "";
+	req.on('data', (chunk) => content += chunk);
+	req.on('end', () => {
+		req.body = content;
+		next();
+	});
+};
+
+const readArgs = text => {
+	let args = {};
+	const splitKeyValue = pair => pair.split('=');
+	const assignKeyValueToArgs = ([key, value]) => args[key] = value;
+	text.split('&').map(splitKeyValue).forEach(assignKeyValueToArgs);
+	return args;
+};
+
 const send = function (res, content) {
 	res.statusCode = 200;
 	res.write(content);
@@ -29,25 +46,8 @@ const sendServerError = function (res) {
 }
 
 const getPath = function (url) {
-	if (url == "/") return "./public/homePage.html";
+	if (url == "/") return "./public/index.html";
 	return "./public" + url;
-};
-
-const readBody = (req, res, next) => {
-	let content = "";
-	req.on('data', (chunk) => content += chunk);
-	req.on('end', () => {
-		req.body = content;
-		next();
-	});
-};
-
-const readArgs = text => {
-	let args = {};
-	const splitKeyValue = pair => pair.split('=');
-	const assignKeyValueToArgs = ([key, value]) => args[key] = value;
-	text.split('&').map(splitKeyValue).forEach(assignKeyValueToArgs);
-	return args;
 };
 
 const handleFileRequest = function (req, res, next) {
@@ -86,6 +86,7 @@ const handleGuestBookWithPost = function (req, res, next) {
 app.use(readBody);
 app.use(logRequest);
 app.get('/', handleFileRequest);
+app.get('/index.html', handleFileRequest);
 app.get('/main.js', handleFileRequest);
 app.get('/main.css', handleFileRequest);
 app.get('/images/freshorigins.jpg', handleFileRequest);
