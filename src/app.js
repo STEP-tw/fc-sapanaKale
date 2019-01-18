@@ -10,17 +10,23 @@ const logRequest = (req, res, next) => {
 	next();
 };
 
-const send = function (res, statusCode, content) {
-	res.statusCode = statusCode;
+const send = function (res, content) {
+	res.statusCode = 200;
 	res.write(content);
 	res.end();
 };
 
 const sendNotFound = (req, res) => {
 	res.statusCode = 404;
-	res.write("bad request");
+	res.write("Not Found");
 	res.end();
 };
+
+const sendServerError = function (res) {
+	res.statusCode = 500;
+	res.write("Internal Server Error");
+	res.end();
+}
 
 const getPath = function (url) {
 	if (url == "/") return "./public/homePage.html";
@@ -44,66 +50,48 @@ const readArgs = text => {
 	return args;
 };
 
-const getRequestHandler = function (req, res, next) {
+const handleFileRequest = function (req, res, next) {
 	let path = getPath(req.url);
 	fs.readFile(path, (err, content) => {
-		if (err) {
-			send(res, 404, "bad request");
-			return;
-		}
-		send(res, 200, content);
+		if (err) sendServerError(res);
+		send(res, content);
 	});
 };
 
-const renderGuestBookWithComments = function (req, res, next) {
-	let path = getPath(req.url);
-	let text = req.body;
-	let args = readArgs(text);
-	let date = new Date().toLocaleString();
-	args.date = date;
-	comments.unshift(JSON.stringify(args));
-	fs.writeFile('./public/logs/comments.json', JSON.stringify(comments), (err) => {
-		let commentsList = comments.map(x => {
-			x = JSON.parse(x);
-			return `<p>${x.date} ${x.name} ${x.comment}</p>`;
-		}).join("");
-
-		fs.readFile(path, (err, content) => {
-			if (err) {
-				send(res, 404, "bad request");
-			}
-			else {
-				send(res, 200, content + commentsList);
-				return;
-			}
-		});
-	})
-};
-
-const guestBookRequestHandler = function (req, res, next) {
-	let commentsList = comments.map(x => {
+const convertCommentsToHtml = function (commentsList) {
+	return commentsList.map(x => {
 		x = JSON.parse(x);
 		return `<p>${x.date} ${x.name} ${x.comment}</p>`;
 	}).join("");
+};
+
+const handleGuestBook = function (req, res, next) {
 	let path = getPath(req.url);
 	fs.readFile(path, (err, content) => {
-		if (err) {
-			send(res, 404, "bad request");
-			return;
-		}
-		send(res, 200, content + commentsList);
+		let commentsList = convertCommentsToHtml(comments);
+		if (err) sendServerError(res);
+		send(res, content + commentsList);
 	});
+};
+
+const handleGuestBookWithPost = function (req, res, next) {
+	let comment = readArgs(req.body);
+	comment.date = new Date().toLocaleString();
+	comments.unshift(JSON.stringify(comment));
+	fs.writeFile('./public/logs/comments.json', JSON.stringify(comments), (err) => {
+		handleGuestBook(req, res, next);
+	})
 };
 
 app.use(readBody);
 app.use(logRequest);
-app.get('/', getRequestHandler);
-app.get('/main.js', getRequestHandler);
-app.get('/main.css', getRequestHandler);
-app.get('/images/freshorigins.jpg', getRequestHandler);
-app.get('/images/animated-flower-image-0021.gif', getRequestHandler);
-app.get('/guestBook.html', guestBookRequestHandler);
-app.post('/guestBook.html', renderGuestBookWithComments);
+app.get('/', handleFileRequest);
+app.get('/main.js', handleFileRequest);
+app.get('/main.css', handleFileRequest);
+app.get('/images/freshorigins.jpg', handleFileRequest);
+app.get('/images/animated-flower-image-0021.gif', handleFileRequest);
+app.get('/guestBook.html', handleGuestBook);
+app.post('/guestBook.html', handleGuestBookWithPost);
 app.use(sendNotFound);
 
 module.exports = app.handleRequest.bind(app);
