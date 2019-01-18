@@ -1,5 +1,6 @@
 const fs = require('fs');
-let comments = require('../public/logs/comments.json');
+let comments = fs.readFileSync('./public/logs/comments.json',"utf8");
+comments = JSON.parse(comments);
 const App = require('./createApp');
 const app = new App();
 
@@ -43,7 +44,7 @@ const sendServerError = function (res) {
 	res.statusCode = 500;
 	res.write("Internal Server Error");
 	res.end();
-}
+};
 
 const getPath = function (url) {
 	if (url == "/") return "./public/index.html";
@@ -80,7 +81,7 @@ const handleGuestBookWithPost = function (req, res, next) {
 	comments.unshift(JSON.stringify(comment));
 	fs.writeFile('./public/logs/comments.json', JSON.stringify(comments), (err) => {
 		handleGuestBook(req, res, next);
-	})
+	});
 };
 
 app.use(readBody);
