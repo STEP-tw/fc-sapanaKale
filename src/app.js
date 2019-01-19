@@ -62,7 +62,9 @@ const handleFileRequest = function (req, res, next) {
 const convertCommentsToHtml = function (commentsList) {
 	return commentsList.map(x => {
 		x = JSON.parse(x);
-		return `<p>${x.date} ${x.name} ${x.comment}</p>`;
+		x.comment = x.comment.replace(/\+/g,' ');
+		x.comment = decodeURIComponent(x.comment);
+		return `<p>${x.date} <b>${x.name}</b> ${x.comment}</p>`;
 	}).join("");
 };
 
@@ -71,7 +73,8 @@ const handleGuestBook = function (req, res, next) {
 	fs.readFile(path, (err, content) => {
 		let commentsList = convertCommentsToHtml(comments);
 		if (err) sendServerError(res);
-		send(res, content + commentsList);
+		let guestBook = content.toString().replace("#comments#",commentsList);
+		send(res, guestBook);
 	});
 };
 
@@ -98,6 +101,7 @@ app.get('/logs/Abeliophyllum.pdf',handleFileRequest);
 app.get('/ageratum.html',handleFileRequest);
 app.get('/images/pbase-agerantum.jpg',handleFileRequest);
 app.get('/logs/Ageratum.pdf',handleFileRequest);
+app.get('/logs/comments.json', handleFileRequest);
 app.get('/guestBook.html', handleGuestBook);
 app.post('/guestBook.html', handleGuestBookWithPost);
 app.use(sendNotFound);
