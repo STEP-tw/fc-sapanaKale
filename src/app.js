@@ -1,5 +1,5 @@
 const fs = require('fs');
-let comments = fs.readFileSync('./public/logs/comments.json',"utf8");
+let comments = fs.readFileSync('./private/data/comments.json',"utf8");
 comments = JSON.parse(comments);
 const App = require('./createApp');
 const app = new App();
@@ -82,10 +82,14 @@ const handleGuestBookWithPost = function (req, res, next) {
 	let comment = readArgs(req.body);
 	comment.date = new Date().toLocaleString();
 	comments.unshift(JSON.stringify(comment));
-	fs.writeFile('./public/logs/comments.json', JSON.stringify(comments), (err) => {
+	fs.writeFile('./private/data/comments.json', JSON.stringify(comments), (err) => {
 		handleGuestBook(req, res, next);
 	});
 };
+
+const handleCommentsReq = function(req, res, next){
+	send(res, comments.toString());
+}
 
 app.use(readBody);
 app.use(logRequest);
@@ -97,11 +101,11 @@ app.get('/images/freshorigins.jpg', handleFileRequest);
 app.get('/images/animated-flower-image-0021.gif', handleFileRequest);
 app.get('/abeliophyllum.html', handleFileRequest);
 app.get('/images/pbase-Abeliophyllum.jpg', handleFileRequest);
-app.get('/logs/Abeliophyllum.pdf',handleFileRequest);
+app.get('/pdfs/Abeliophyllum.pdf',handleFileRequest);
 app.get('/ageratum.html',handleFileRequest);
 app.get('/images/pbase-agerantum.jpg',handleFileRequest);
-app.get('/logs/Ageratum.pdf',handleFileRequest);
-app.get('/logs/comments.json', handleFileRequest);
+app.get('/pdfs/Ageratum.pdf',handleFileRequest);
+app.get('/comments', handleCommentsReq);
 app.get('/guestBook.html', handleGuestBook);
 app.post('/guestBook.html', handleGuestBookWithPost);
 app.use(sendNotFound);

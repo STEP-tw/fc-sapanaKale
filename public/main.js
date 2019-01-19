@@ -16,7 +16,7 @@ const convertCommentsToHtml = function (commentsList) {
 };
 
 const addComments = function () {
-	fetch('/logs/comments.json')
+	fetch('/comments')
 		.then(function (response) {
 			return (response.json());
 		})
