@@ -6,22 +6,13 @@ const disappear = function () {
 	}, 1000);
 };
 
-const convertCommentsToHtml = function (commentsList) {
-	return commentsList.map(x => {
-		x = JSON.parse(x);
-		x.comment = x.comment.replace(/\+/g, ' ');
-		x.comment = decodeURIComponent(x.comment);
-		return `<p>${x.date} <b>${x.name}</b> ${x.comment}</p>`;
-	}).join("");
-};
-
 const addComments = function () {
 	fetch('/comments')
 		.then(function (response) {
-			return (response.json());
+			return response.text();
 		})
 		.then(function (comments) {
 			let commentsDiv = document.getElementById('comments');
-			commentsDiv.innerHTML = convertCommentsToHtml(comments);
+			commentsDiv.innerHTML = comments;
 		});
 };
