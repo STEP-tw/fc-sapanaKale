@@ -10,8 +10,12 @@ class Comment {
 	stringify(){
 		return JSON.stringify(this.commentData);
 	}
+	addName(userName){
+		this.commentData["name"] = userName;
+	}
 	addDate(){
-		this.commentData["date"] = new Date().toLocaleString();
+		let date = new Date().toUTCString();
+		this.commentData["date"] = date;
 	}
 };
 
@@ -28,7 +32,8 @@ class Comments {
 	convertToHtml(){
 		return this.commentsDetails.map(commentData => {
 			commentData = JSON.parse(commentData);
-			return `<p>${commentData.date} <b>${commentData.name}</b>
+			let date = new Date(commentData.date).toLocaleString();
+			return `<p>${date} <b>${commentData.name}</b>
 			${commentData.comment}</p>`;
 		}).join("");
 	}

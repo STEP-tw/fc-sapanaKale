@@ -1,10 +1,49 @@
 const fs = require('fs');
+
 const App = require('./createApp');
 const app = new App();
-const {Comment, Comments, initializeComments} = require('./comment');
+
+const { Comment, Comments, initializeComments } = require('./comment');
 let commentsDetails = initializeComments('./private/data/comments.json');
 let comments = new Comments(commentsDetails);
 
+const GuestBook = require('./guestBook');
+let guestBook = fs.readFileSync('./public/guestBook.html', 'utf8');
+
+let userIDs = fs.readFileSync('./private/data/userIDs.json', "utf8");
+userIDs = JSON.parse(userIDs);
+
+let sessions = fs.readFileSync('./private/data/sessions.json', "utf8");
+sessions = JSON.parse(sessions);
+
+const createUserIDCookie = function (res) {
+	let userID = new Date().getTime();
+	res.setHeader('Set-Cookie', `userId=${userID}`);
+};
+
+const getUserID = function (req) {
+	const cookie = req.headers['cookie'];
+	return +cookie.split('=')[1];
+};
+
+const updateUserIDs = function (req) {
+	let userID = getUserID(req);
+	if (!userIDs.includes(userID)) {
+		userIDs.push(userID);
+		fs.writeFile('./private/data/userIDs.json', JSON.stringify(userIDs), () => { });
+	};
+};
+
+const readCookies = (req, res, next) => {
+	const cookie = req.headers['cookie'];
+	req.cookie = cookie;
+	if (!cookie) {
+		createUserIDCookie(res);
+	} else {
+		updateUserIDs(req);
+	}
+	next();
+};
 
 const logRequest = function (req, res, next) {
 	console.log(req.method, req.url);
@@ -30,23 +69,15 @@ const readArgs = function (text) {
 	return args;
 };
 
-const send = function (res, content) {
-	res.statusCode = 200;
+const send = function (statusCode, content, res) {
+	res.statusCode = statusCode;
 	res.write(content);
 	res.end();
 };
 
-const sendNotFound = function (res) {
-	res.statusCode = 404;
-	res.write("Not Found");
-	res.end();
-};
-
-const sendServerError = function (res) {
-	res.statusCode = 500;
-	res.write("Internal Server Error");
-	res.end();
-};
+const sendContent = send.bind(null, 200);
+const sendNotFound = send.bind(null, 404, "Not Found");
+const sendServerError = send.bind(null, 500, "Internal Server Error");
 
 const getPath = function (url) {
 	if (url == "/") return "./public/index.html";
@@ -61,7 +92,7 @@ const renderFile = function (req, res) {
 	let path = getPath(req.url);
 	fs.readFile(path, (err, content) => {
 		try {
-			send(res, content);
+			sendContent(content, res);
 		} catch (error) {
 			if (isErrorFileNotFound(err.code)) {
 				sendNotFound(res);
@@ -72,18 +103,28 @@ const renderFile = function (req, res) {
 	});
 };
 
+const renderComments = function (req, res, next) {
+	sendContent(comments.convertToHtml(), res);
+};
+
 const renderGuestBook = function (req, res, next) {
-	let path = getPath(req.url);
-	fs.readFile(path, (err, content) => {
-		if (err) sendServerError(res);
-		let commentsList = comments.convertToHtml();
-		let guestBook = content.toString().replace("#comments#", commentsList);
-		send(res, guestBook);
-	});
+	let userID = getUserID(req);
+	let userName = sessions[userID];
+	let guestBookForm = new GuestBook(guestBook, comments);
+	guestBookForm = guestBookForm.withLogInForm();
+	if (userName != undefined) {
+		guestBookForm = new GuestBook(guestBook, comments);
+		guestBookForm = guestBookForm.withCommentForm(userName);
+	};
+	sendContent(guestBookForm, res);
 };
 
 const renderGuestBookWithComment = function (req, res, next) {
-	let comment = new Comment(readArgs(req.body));
+	let userID = getUserID(req);
+	let userName = sessions[userID];
+	let comment = readArgs(req.body);
+	comment = new Comment(comment);
+	comment.addName(userName);
 	comment.addDate();
 	comments.add(comment.stringify());
 	fs.writeFile('./private/data/comments.json', comments.stringify(), (err) => {
@@ -91,15 +132,33 @@ const renderGuestBookWithComment = function (req, res, next) {
 	});
 };
 
-const renderComments = function (req, res, next) {
-	send(res, comments.convertToHtml().toString());
+const logIn = function (req, res, next) {
+	let userName = readArgs(req.body).name;
+	let userID = getUserID(req);
+	sessions[userID] = userName;
+	fs.writeFile('./private/data/sessions.json', JSON.stringify(sessions), () => {
+		let guestBookForm = new GuestBook(guestBook, comments);
+		sendContent(guestBookForm.afterLogIn(userName), res);
+	});
+};
+
+const logOut = function (req, res, next) {
+	let userID = getUserID(req);
+	sessions[userID] = undefined;
+	fs.writeFile('./private/data/sessions.json', JSON.stringify(sessions), () => {
+		let guestBookForm = new GuestBook(guestBook, comments);
+		sendContent(guestBookForm.afterLogOut(), res);
+	});
 }
 
+app.use(readCookies);
 app.use(readBody);
 app.use(logRequest);
 app.get('/comments', renderComments);
 app.get('/guestBook.html', renderGuestBook);
 app.post('/guestBook.html', renderGuestBookWithComment);
+app.post('/login', logIn);
+app.post('/logOut', logOut);
 app.use(renderFile);
 
 module.exports = app.handleRequest.bind(app);
