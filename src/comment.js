@@ -29,14 +29,6 @@ class Comments {
 	stringify(){
 		return JSON.stringify(this.commentsDetails);
 	}
-	convertToHtml(){
-		return this.commentsDetails.map(commentData => {
-			commentData = JSON.parse(commentData);
-			let date = new Date(commentData.date).toLocaleString();
-			return `<p>${date} <b>${commentData.name}</b>
-			${commentData.comment}</p>`;
-		}).join("");
-	}
 };
 
 const initializeComments = function (path){

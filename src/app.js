@@ -104,7 +104,7 @@ const renderFile = function (req, res) {
 };
 
 const renderComments = function (req, res, next) {
-	sendContent(comments.convertToHtml(), res);
+	sendContent(comments.stringify(), res);
 };
 
 const renderGuestBook = function (req, res, next) {
@@ -113,13 +113,13 @@ const renderGuestBook = function (req, res, next) {
 	let guestBookForm = new GuestBook(guestBook, comments);
 	guestBookForm = guestBookForm.withLogInForm();
 	if (userName != undefined) {
-		guestBookForm = new GuestBook(guestBook, comments);
+		guestBookForm = new GuestBook(guestBook);
 		guestBookForm = guestBookForm.withCommentForm(userName);
 	};
 	sendContent(guestBookForm, res);
 };
 
-const renderGuestBookWithComment = function (req, res, next) {
+const renderUpdatedComments = function (req, res, next) {
 	let userID = getUserID(req);
 	let userName = sessions[userID];
 	let comment = readArgs(req.body);
@@ -128,37 +128,47 @@ const renderGuestBookWithComment = function (req, res, next) {
 	comment.addDate();
 	comments.add(comment.stringify());
 	fs.writeFile('./private/data/comments.json', comments.stringify(), (err) => {
-		renderGuestBook(req, res, next);
+		sendContent(comments.stringify(), res);
 	});
-};
+}
 
-const logIn = function (req, res, next) {
+const renderCommentForm = function (req, res, next) {
 	let userName = readArgs(req.body).name;
 	let userID = getUserID(req);
 	sessions[userID] = userName;
 	fs.writeFile('./private/data/sessions.json', JSON.stringify(sessions), () => {
-		let guestBookForm = new GuestBook(guestBook, comments);
-		sendContent(guestBookForm.afterLogIn(userName), res);
+		let guestBookForm = new GuestBook(guestBook);
+		sendContent(guestBookForm.withCommentForm(userName), res);
 	});
 };
 
-const logOut = function (req, res, next) {
+const renderLogInForm = function (req, res, next) {
 	let userID = getUserID(req);
 	sessions[userID] = undefined;
 	fs.writeFile('./private/data/sessions.json', JSON.stringify(sessions), () => {
-		let guestBookForm = new GuestBook(guestBook, comments);
-		sendContent(guestBookForm.afterLogOut(), res);
+		let guestBookForm = new GuestBook(guestBook);
+		sendContent(guestBookForm.withLogInForm(), res);
 	});
-}
+};
+
+const guestBookView = {
+	"name": renderCommentForm,
+	'': renderLogInForm
+};
+
+const renderGuestBookWithComment = function (req, res, next) {
+	let input = readArgs(req.body);
+	let typeOfPost = Object.keys(input)[0];
+	guestBookView[typeOfPost](req, res, next);
+};
 
 app.use(readCookies);
 app.use(readBody);
 app.use(logRequest);
 app.get('/comments', renderComments);
+app.post('/updateComment', renderUpdatedComments);
 app.get('/guestBook.html', renderGuestBook);
 app.post('/guestBook.html', renderGuestBookWithComment);
-app.post('/login', logIn);
-app.post('/logOut', logOut);
 app.use(renderFile);
 
 module.exports = app.handleRequest.bind(app);
