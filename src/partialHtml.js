@@ -2,7 +2,7 @@ const partialHtmls =
 {
 	logInForm: `
 <h2 style="margin-left:20px;">Login to comment</h2>
-<form action="/guestBook.html" method="POST" style="padding:10px; margin-left: 30px;">
+<form action="/logIn" method="POST" style="padding:10px; margin-left: 30px;">
 Name:
 <input type="text" name="name" required>
 <input type="submit" value="Login" style="background-color: aliceblue" >
@@ -12,7 +12,7 @@ Name:
 	commentForm: function (name) {
 		return `
 	<h2 style="margin-left:20px;">Leave a comment</h2>
-	<form action="/guestBook.html" method="POST" style="padding:10px; margin-left: 30px;">
+	<form action="/logOut" method="POST" style="padding:10px; margin-left: 30px;">
 		Name: ${name}
 		<input type="submit" value="Logout" style="background-color: aliceblue" >
 		</form>

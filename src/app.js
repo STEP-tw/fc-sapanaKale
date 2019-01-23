@@ -79,6 +79,12 @@ const sendContent = send.bind(null, 200);
 const sendNotFound = send.bind(null, 404, "Not Found");
 const sendServerError = send.bind(null, 500, "Internal Server Error");
 
+const redirect = function(res, location){
+	res.statusCode = 301;
+	res.setHeader("Location", location);
+	res.end();
+};
+
 const getPath = function (url) {
 	if (url == "/") return "./public/index.html";
 	return "./public" + url;
@@ -110,7 +116,7 @@ const renderComments = function (req, res, next) {
 const renderGuestBook = function (req, res, next) {
 	let userID = getUserID(req);
 	let userName = sessions[userID];
-	let guestBookForm = new GuestBook(guestBook, comments);
+	let guestBookForm = new GuestBook(guestBook);
 	guestBookForm = guestBookForm.withLogInForm();
 	if (userName != undefined) {
 		guestBookForm = new GuestBook(guestBook);
@@ -130,45 +136,33 @@ const renderUpdatedComments = function (req, res, next) {
 	fs.writeFile('./private/data/comments.json', comments.stringify(), (err) => {
 		sendContent(comments.stringify(), res);
 	});
-}
+};
 
-const renderCommentForm = function (req, res, next) {
+const logIn = function (req, res, next) {
 	let userName = readArgs(req.body).name;
 	let userID = getUserID(req);
 	sessions[userID] = userName;
 	fs.writeFile('./private/data/sessions.json', JSON.stringify(sessions), () => {
-		let guestBookForm = new GuestBook(guestBook);
-		sendContent(guestBookForm.withCommentForm(userName), res);
+		redirect(res, '/guestBook.html');
 	});
 };
 
-const renderLogInForm = function (req, res, next) {
+const logOut = function (req, res, next) {
 	let userID = getUserID(req);
 	sessions[userID] = undefined;
 	fs.writeFile('./private/data/sessions.json', JSON.stringify(sessions), () => {
-		let guestBookForm = new GuestBook(guestBook);
-		sendContent(guestBookForm.withLogInForm(), res);
+		redirect(res, '/guestBook.html');
 	});
-};
-
-const guestBookView = {
-	"name": renderCommentForm,
-	'': renderLogInForm
-};
-
-const renderGuestBookWithComment = function (req, res, next) {
-	let input = readArgs(req.body);
-	let typeOfPost = Object.keys(input)[0];
-	guestBookView[typeOfPost](req, res, next);
 };
 
 app.use(readCookies);
 app.use(readBody);
 app.use(logRequest);
 app.get('/comments', renderComments);
-app.post('/updateComment', renderUpdatedComments);
 app.get('/guestBook.html', renderGuestBook);
-app.post('/guestBook.html', renderGuestBookWithComment);
+app.post('/logIn', logIn);
+app.post('/logOut', logOut);
+app.post('/updateComment', renderUpdatedComments);
 app.use(renderFile);
 
 module.exports = app.handleRequest.bind(app);
